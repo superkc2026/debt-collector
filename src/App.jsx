@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-// 重新整理了引用列表，只保留用到的图标，杜绝 ReferenceError
+// 重新整理了引用列表，补回了漏掉的 ChevronRight，确保所有图标都被正确引入
 import { 
   Plus, Trash2, Clock, Copy, User, Edit3, CalendarPlus, PenTool, 
   Image as ImageIcon, Sparkles, RefreshCw, Bell, BellRing, 
   Users, Palette, Settings, Shield, Save, X, Zap, 
-  Globe, PieChart 
+  Globe, PieChart, ChevronRight 
 } from 'lucide-react';
 
 export default function App() {
