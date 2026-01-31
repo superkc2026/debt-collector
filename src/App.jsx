@@ -161,7 +161,11 @@ END:VCALENDAR`;
   const backupData = () => {
     const exportData = {
       "___使用说明___": "1. 您可以直接编辑此文件来批量添加账单。 2. 请勿修改左侧英文键名（如 name），只修改右侧的值。 3. 修改完成后，在App点击'恢复账单数据'上传。",
-      "___字段填写指南___": {
+      "___个人信息指南(userProfile)___": {
+        "name": "您的真实姓名（用于自动填充承诺书）",
+        "idCard": "您的身份证号（用于自动填充承诺书）"
+      },
+      "___账单字段指南(debts)___": {
         "type": "填写 'incoming' (别人欠我) 或 'outgoing' (我欠别人)",
         "name": "对方姓名",
         "amount": "金额 (纯数字，不要加符号)",
@@ -434,6 +438,14 @@ END:VCALENDAR`;
                     <div className="border-b pb-1"><label className="text-[10px] text-gray-400 block ml-1">约定还款时间</label><div className="flex gap-2"><input type="date" className="flex-1 p-2 outline-none text-sm" value={newDebt.dueDate} onChange={e=>setNewDebt({...newDebt, dueDate: e.target.value})} /><input type="time" className="w-24 p-2 outline-none text-sm text-gray-500" value={newDebt.dueTime} onChange={e=>setNewDebt({...newDebt, dueTime: e.target.value})} /></div></div>
                     <div className="border-b pb-1"><label className="text-[10px] text-gray-400 block ml-1">原因备注</label><input type="text" placeholder="例如：聚餐垫付" className="w-full p-2 outline-none text-sm" value={newDebt.reason} onChange={e=>setNewDebt({...newDebt, reason: e.target.value})} /></div>
                 </div>
+                
+                <div className="space-y-3 pt-2">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                        <span className="text-xs text-gray-600 flex items-center gap-2"><CalendarPlus size={14} className="text-blue-500"/> 添加到手机日历</span>
+                        <input type="checkbox" checked={newDebt.addToCalendar} onChange={e=>setNewDebt({...newDebt, addToCalendar: e.target.checked})} className="w-4 h-4 accent-blue-500" />
+                    </div>
+                </div>
+
                 <button onClick={handleAddDebt} className={`w-full ${newDebt.type==='incoming'?wxGreen:'bg-red-500'} text-white py-4 rounded-2xl font-bold shadow-lg`}>保存账单</button>
               </div>
             </div>
