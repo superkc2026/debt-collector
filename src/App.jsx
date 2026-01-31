@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+// 1. 确保引入 PieChart 和 Globe 防止白屏
 import { Plus, Trash2, Clock, Copy, AlertCircle, User, Calendar, ArrowUpRight, ArrowDownLeft, Edit3, CalendarPlus, PenTool, Image as ImageIcon, Sparkles, RefreshCw, Bell, BellRing, Users, Palette, Settings, Shield, Save, X, Zap, Globe, PieChart } from 'lucide-react';
 
 export default function App() {
@@ -35,7 +36,7 @@ export default function App() {
   const wxBg = 'bg-[#f5f5f5]';
   const wxRed = 'bg-[#fa5151]';
 
-  // --- 安全的 DeepSeek 调用 (通过后端转发) ---
+  // --- AI 文案生成 (保留催收功能，但移除了记账识别) ---
   const callDeepSeek = async (systemPrompt, userPrompt) => {
     try {
       const response = await fetch("/api/chat", {
@@ -136,6 +137,7 @@ export default function App() {
   };
 
   return (
+    // 2. 使用 h-[100dvh] 修复手机端显示不全屏的问题
     <div className={`h-[100dvh] ${wxBg} flex justify-center`}>
       <div className="w-full md:max-w-md bg-white h-full shadow-xl relative flex flex-col overflow-hidden">
         {/* Header */}
@@ -190,6 +192,7 @@ export default function App() {
           {activeTab === 'add' && (
             <div className="p-4 space-y-6">
               <h2 className="text-xl font-bold">记一笔新账</h2>
+              {/* 3. 已移除 AI 智能记账输入框，直接显示手动录入表单 */}
               <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-5">
                 <div className="grid grid-cols-2 gap-3">
                     <button onClick={()=>setNewDebt({...newDebt, type:'incoming'})} className={`py-3 rounded-xl border-2 font-bold text-sm ${newDebt.type==='incoming'?'border-green-500 bg-green-50 text-green-700':'border-gray-100 text-gray-400'}`}>借给别人</button>
@@ -210,6 +213,7 @@ export default function App() {
             <div className="p-4 space-y-5">
               <h2 className="text-xl font-bold px-1">设置与资产</h2>
               <div className="bg-gray-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                {/* 4. PieChart 已正确引入，不会再白屏 */}
                 <PieChart className="absolute -right-4 -top-4 opacity-10 w-24 h-24" />
                 <div className="text-[10px] opacity-50 mb-1">当前净资产 (借出-欠款)</div>
                 <div className="text-2xl font-bold mb-4">¥ {(debts.filter(d=>d.type==='incoming').reduce((s,i)=>s+Number(i.amount),0) - debts.filter(d=>d.type==='outgoing').reduce((s,i)=>s+Number(i.amount),0)).toLocaleString()}</div>
