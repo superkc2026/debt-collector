@@ -159,7 +159,8 @@ END:VCALENDAR`;
 
   // 3. 备份数据功能
   const backupData = () => {
-    const dataStr = JSON.stringify({ debts, userProfile });
+    // 使用 JSON.stringify 的第三个参数 (2) 来添加缩进和换行，使 JSON 易读易编辑
+    const dataStr = JSON.stringify({ debts, userProfile }, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -363,8 +364,8 @@ END:VCALENDAR`;
           {activeTab === 'list' && (
             <div className="p-4 space-y-4">
               <div className="flex bg-gray-200 p-1 rounded-lg">
-                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回</button>
-                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还</button>
+                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回 (讨债)</button>
+                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还 (欠款)</button>
               </div>
               <div className={`${listType === 'incoming' ? wxGreen : wxRed} text-white rounded-2xl p-6 shadow-lg transition-all`}>
                 <div className="text-xs opacity-80 mb-1">{listType === 'incoming' ? '待收回总金额' : '待偿还总金额'}</div>
