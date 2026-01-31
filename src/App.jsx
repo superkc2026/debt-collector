@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 // 1. 引入 Upload 图标
 import { 
   Plus, Trash2, Clock, Copy, User, Edit3, CalendarPlus, PenTool, 
@@ -9,14 +9,44 @@ import {
 export default function App() {
   const [activeTab, setActiveTab] = useState('list');
   const [listType, setListType] = useState('incoming');
-  const [userProfile, setUserProfile] = useState({ name: '', idCard: '' });
 
-  // 移除 enableReminder, reminderType 字段
-  const [debts, setDebts] = useState([
-    { id: 1, type: 'incoming', name: '张三', amount: 500, dueDate: '2023-12-31', dueTime: '18:00', reason: '聚餐垫付', status: 'overdue', addToCalendar: false },
-    { id: 2, type: 'incoming', name: '李四', amount: 2000, dueDate: '2025-12-01', dueTime: '12:00', reason: '周转借款', status: 'pending', addToCalendar: false },
-    { id: 3, type: 'outgoing', name: '王五', amount: 1000, dueDate: '2024-05-20', dueTime: '09:00', reason: '房租周转', status: 'pending', addToCalendar: true }
-  ]);
+  // --- 数据持久化改造开始 ---
+
+  // 1. 初始化用户配置：优先从 LocalStorage 读取
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('debt_user_profile');
+      return saved ? JSON.parse(saved) : { name: '', idCard: '' };
+    } catch (e) {
+      return { name: '', idCard: '' };
+    }
+  });
+
+  // 2. 初始化账单数据：优先从 LocalStorage 读取
+  const [debts, setDebts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('debt_data_list');
+      // 如果本地有数据，就用本地的；否则用默认示例
+      return saved ? JSON.parse(saved) : [
+        { id: 1, type: 'incoming', name: '张三', amount: 500, dueDate: '2023-12-31', dueTime: '18:00', reason: '聚餐垫付', status: 'overdue', addToCalendar: false },
+        { id: 2, type: 'incoming', name: '李四', amount: 2000, dueDate: '2025-12-01', dueTime: '12:00', reason: '周转借款', status: 'pending', addToCalendar: false },
+        { id: 3, type: 'outgoing', name: '王五', amount: 1000, dueDate: '2024-05-20', dueTime: '09:00', reason: '房租周转', status: 'pending', addToCalendar: true }
+      ];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // 3. 监听数据变化，自动保存到 LocalStorage
+  useEffect(() => {
+    localStorage.setItem('debt_user_profile', JSON.stringify(userProfile));
+  }, [userProfile]);
+
+  useEffect(() => {
+    localStorage.setItem('debt_data_list', JSON.stringify(debts));
+  }, [debts]);
+
+  // --- 数据持久化改造结束 ---
 
   const [newDebt, setNewDebt] = useState({
     type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', addToCalendar: false
@@ -333,8 +363,8 @@ END:VCALENDAR`;
           {activeTab === 'list' && (
             <div className="p-4 space-y-4">
               <div className="flex bg-gray-200 p-1 rounded-lg">
-                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回 (讨债)</button>
-                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还 (欠款)</button>
+                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回</button>
+                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还</button>
               </div>
               <div className={`${listType === 'incoming' ? wxGreen : wxRed} text-white rounded-2xl p-6 shadow-lg transition-all`}>
                 <div className="text-xs opacity-80 mb-1">{listType === 'incoming' ? '待收回总金额' : '待偿还总金额'}</div>
