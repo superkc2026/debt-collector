@@ -14,7 +14,9 @@ export default function App() {
 
   const [debts, setDebts] = useState([
     { id: 1, type: 'incoming', name: '张三', amount: 500, dueDate: '2023-12-31', dueTime: '18:00', reason: '聚餐垫付', status: 'overdue', enableReminder: true, reminderType: '当天', addToCalendar: false },
-    { id: 2, type: 'incoming', name: '李四', amount: 2000, dueDate: '2025-12-01', dueTime: '12:00', reason: '周转借款', status: 'pending', enableReminder: false, reminderType: 'none', addToCalendar: false }
+    { id: 2, type: 'incoming', name: '李四', amount: 2000, dueDate: '2025-12-01', dueTime: '12:00', reason: '周转借款', status: 'pending', enableReminder: false, reminderType: 'none', addToCalendar: false },
+    // 新增：待偿还（outgoing）示例
+    { id: 3, type: 'outgoing', name: '王五', amount: 1000, dueDate: '2024-05-20', dueTime: '09:00', reason: '房租周转', status: 'pending', enableReminder: true, reminderType: '提前1天', addToCalendar: true }
   ]);
 
   const [newDebt, setNewDebt] = useState({
@@ -141,13 +143,115 @@ export default function App() {
     return `${currentShareItem.name}，借给你的${currentShareItem.amount}元（原因：${currentShareItem.reason || '无备注'}）记得在${currentShareItem.dueDate} ${currentShareItem.dueTime}前还哦。`;
   };
 
+  // --- Canvas 图片合成与下载逻辑 ---
+  const generateImage = () => {
+    if (!currentShareItem) return;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    // 设置画布参数，使用 2 倍图以保证清晰度
+    const scale = 2; 
+    const width = 600;
+    const padding = 40;
+    const lineHeight = 35;
+    const fontSize = 20;
+    
+    // 获取需要绘制的文本
+    const textContent = generateMessage();
+    const paragraphs = textContent.split('\n');
+    const lines = [];
+    
+    ctx.font = `${fontSize}px serif`; // 使用衬线体，更有正式感
+    
+    // 自动换行计算
+    paragraphs.forEach(para => {
+       if(para === '') {
+           lines.push('');
+           return;
+       }
+       let line = '';
+       for(let char of para) {
+           if(ctx.measureText(line + char).width > width - padding*2) {
+               lines.push(line);
+               line = char;
+           } else {
+               line += char;
+           }
+       }
+       lines.push(line);
+    });
+
+    const contentHeight = lines.length * lineHeight;
+    // 只有在是“欠款（outgoing）”且有签名时，才预留签名区域高度
+    const signatureAreaHeight = (signatureData && currentShareItem.type === 'outgoing') ? 140 : 0;
+    const canvasHeight = padding * 2 + contentHeight + signatureAreaHeight + 60; // 额外底部空间
+
+    canvas.width = width * scale;
+    canvas.height = canvasHeight * scale;
+    ctx.scale(scale, scale);
+
+    // 1. 绘制白色背景
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, canvasHeight);
+
+    // 2. 绘制顶部水印/标题
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = '#e5e7eb'; // 浅灰色
+    ctx.textAlign = 'center';
+    ctx.fillText('有借有还 App 生成', width/2, 20);
+
+    // 3. 绘制正文
+    ctx.fillStyle = '#1f2937'; // 深灰色文字
+    ctx.font = `${fontSize}px serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    
+    let y = padding;
+    lines.forEach(line => {
+        ctx.fillText(line, padding, y);
+        y += lineHeight;
+    });
+
+    // 4. 绘制签名（如果有）
+    if (signatureData && currentShareItem.type === 'outgoing') {
+        const img = new Image();
+        img.onload = () => {
+            const sigWidth = 140; // 签名显示宽度
+            const sigHeight = (img.height / img.width) * sigWidth;
+            // 签名靠右对齐
+            const sigX = width - padding - sigWidth;
+            const sigY = y + 30;
+            
+            ctx.drawImage(img, sigX, sigY, sigWidth, sigHeight);
+            
+            // 添加“手写签名”文字标注
+            ctx.font = '12px sans-serif';
+            ctx.fillStyle = '#9ca3af'; // 灰色
+            ctx.textAlign = 'right';
+            ctx.fillText('签署人手写签名：', sigX - 10, sigY + sigHeight/2);
+            
+            downloadCanvas(canvas);
+        };
+        img.src = signatureData;
+    } else {
+        downloadCanvas(canvas);
+    }
+  };
+
+  const downloadCanvas = (canvas) => {
+      const link = document.createElement('a');
+      link.download = `借款承诺书_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+  };
+
   return (
     <div className={`h-[100dvh] w-screen ${wxBg} flex justify-center overflow-hidden`}>
       <div className="w-full md:max-w-md bg-white h-full shadow-xl relative flex flex-col">
         {/* Header */}
         <div className="bg-[#ededed] px-4 py-3 flex items-center justify-between border-b border-gray-300 sticky top-0 z-20 shrink-0">
           <div className="font-semibold text-lg flex items-center gap-2">
-            债务小本本 <Zap size={14} className="text-yellow-500" fill="currentColor"/>
+            有借有还 <Zap size={14} className="text-yellow-500" fill="currentColor"/>
           </div>
           <div className="flex gap-2 items-center">
              <div className="text-[10px] text-gray-400 bg-gray-200 px-2 py-1 rounded-full">AI Ready</div>
@@ -294,7 +398,7 @@ export default function App() {
                     )}
                     <div className="grid grid-cols-2 gap-3 pt-2">
                         <button onClick={() => { const t = generateMessage(); const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('已复制'); }} className={`py-4 ${wxGreen} text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95`}><Copy size={18}/> 复制</button>
-                        <button onClick={() => alert('图片生成功能将在正式版上线')} className="py-4 bg-gray-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95"><ImageIcon size={18}/> 生成图片</button>
+                        <button onClick={generateImage} className="py-4 bg-gray-800 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95"><ImageIcon size={18}/> 生成图片</button>
                     </div>
                 </div>
             </div>
