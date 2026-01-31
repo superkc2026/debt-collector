@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
-// 重新整理了引用列表，补回了漏掉的 ChevronRight，确保所有图标都被正确引入
+// 移除 Bell, BellRing，因为不再需要应用内提醒
 import { 
   Plus, Trash2, Clock, Copy, User, Edit3, CalendarPlus, PenTool, 
-  Image as ImageIcon, Sparkles, RefreshCw, Bell, BellRing, 
-  Users, Palette, Settings, Shield, Save, X, Zap, 
-  Globe, PieChart, ChevronRight 
+  Image as ImageIcon, Sparkles, RefreshCw, Users, Palette, Settings, Shield, Save, X, Zap, 
+  Globe, PieChart, ChevronRight, CalendarCheck
 } from 'lucide-react';
 
 export default function App() {
@@ -12,21 +11,20 @@ export default function App() {
   const [listType, setListType] = useState('incoming');
   const [userProfile, setUserProfile] = useState({ name: '', idCard: '' });
 
+  // 移除 enableReminder, reminderType 字段
   const [debts, setDebts] = useState([
-    { id: 1, type: 'incoming', name: '张三', amount: 500, dueDate: '2023-12-31', dueTime: '18:00', reason: '聚餐垫付', status: 'overdue', enableReminder: true, reminderType: '当天', addToCalendar: false },
-    { id: 2, type: 'incoming', name: '李四', amount: 2000, dueDate: '2025-12-01', dueTime: '12:00', reason: '周转借款', status: 'pending', enableReminder: false, reminderType: 'none', addToCalendar: false },
-    // 新增：待偿还（outgoing）示例
-    { id: 3, type: 'outgoing', name: '王五', amount: 1000, dueDate: '2024-05-20', dueTime: '09:00', reason: '房租周转', status: 'pending', enableReminder: true, reminderType: '提前1天', addToCalendar: true }
+    { id: 1, type: 'incoming', name: '张三', amount: 500, dueDate: '2023-12-31', dueTime: '18:00', reason: '聚餐垫付', status: 'overdue', addToCalendar: false },
+    { id: 2, type: 'incoming', name: '李四', amount: 2000, dueDate: '2025-12-01', dueTime: '12:00', reason: '周转借款', status: 'pending', addToCalendar: false },
+    { id: 3, type: 'outgoing', name: '王五', amount: 1000, dueDate: '2024-05-20', dueTime: '09:00', reason: '房租周转', status: 'pending', addToCalendar: true }
   ]);
 
   const [newDebt, setNewDebt] = useState({
-    type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', enableReminder: false, reminderType: '当天', addToCalendar: false
+    type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', addToCalendar: false
   });
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentShareItem, setCurrentShareItem] = useState(null);
-  const [showReminderModal, setShowReminderModal] = useState(false);
-  const [editingReminderItem, setEditingReminderItem] = useState(null);
+  // 移除 ReminderModal 相关状态
   const [aiOptions, setAiOptions] = useState({ audience: '朋友', style: '正常' });
   const [aiGeneratedMessage, setAiGeneratedMessage] = useState('');
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
@@ -74,18 +72,57 @@ export default function App() {
     setAiOptions({ audience: aud, style: sty });
     setIsGeneratingMessage(true);
     const base = `${currentShareItem.name}，你借的${currentShareItem.amount}元（原因：${currentShareItem.reason}）该还了。`;
-    const res = await callDeepSeek("你是一个高情商催款助手。", `将此信息改写给"${aud}"，语气"${sty}"：${base}。要求100字内，直接返回正文。`);
+    const res = await callDeepSeek("你是一个高情商催收助手。", `将此信息改写给"${aud}"，语气"${sty}"：${base}。要求100字内，直接返回正文。`);
     if (res) setAiGeneratedMessage(res);
     setIsGeneratingMessage(false);
   };
 
   // --- 业务逻辑 ---
+  // 生成 ICS 文件并下载（添加到手机日历）
+  const generateIcsFile = (item) => {
+    const title = item.type === 'incoming' ? `有借有还：${item.name}应还款` : `有借有还：还给${item.name}`;
+    // 简单的 ICS 时间格式化
+    const dateStr = item.dueDate.replace(/-/g, '');
+    const timeStr = item.dueTime.replace(/:/g, '');
+    const start = `${dateStr}T${timeStr}00`;
+    
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//FanKeJi//DebtCollector//CN
+BEGIN:VEVENT
+SUMMARY:${title}
+DTSTART;TZID=Asia/Shanghai:${start}
+DTEND;TZID=Asia/Shanghai:${start}
+DESCRIPTION:金额：${item.amount}元\\n备注：${item.reason}
+BEGIN:VALARM
+TRIGGER:-PT15M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `calendar_event_${Date.now()}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert('📅 日历事件文件已生成，请打开文件以添加到手机日历。');
+  };
+
   const handleAddDebt = () => {
     if (!newDebt.name || !newDebt.amount || !newDebt.dueDate) return alert('请完善信息');
     const item = { ...newDebt, id: Date.now(), status: 'pending' };
     setDebts([...debts, item]);
-    if (newDebt.addToCalendar) alert('📅 已尝试同步至系统日历事件');
-    setNewDebt({ type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', enableReminder: false, reminderType: '当天', addToCalendar: false });
+    
+    if (newDebt.addToCalendar) {
+        generateIcsFile(item);
+    }
+    
+    setNewDebt({ type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', addToCalendar: false });
     setActiveTab('list');
   };
 
@@ -149,21 +186,18 @@ export default function App() {
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    // 设置画布参数，使用 2 倍图以保证清晰度
     const scale = 2; 
     const width = 600;
     const padding = 40;
     const lineHeight = 35;
     const fontSize = 20;
     
-    // 获取需要绘制的文本
     const textContent = generateMessage();
     const paragraphs = textContent.split('\n');
     const lines = [];
     
-    ctx.font = `${fontSize}px serif`; // 使用衬线体，更有正式感
+    ctx.font = `${fontSize}px serif`;
     
-    // 自动换行计算
     paragraphs.forEach(para => {
        if(para === '') {
            lines.push('');
@@ -182,26 +216,22 @@ export default function App() {
     });
 
     const contentHeight = lines.length * lineHeight;
-    // 只有在是“欠款（outgoing）”且有签名时，才预留签名区域高度
     const signatureAreaHeight = (signatureData && currentShareItem.type === 'outgoing') ? 140 : 0;
-    const canvasHeight = padding * 2 + contentHeight + signatureAreaHeight + 60; // 额外底部空间
+    const canvasHeight = padding * 2 + contentHeight + signatureAreaHeight + 60;
 
     canvas.width = width * scale;
     canvas.height = canvasHeight * scale;
     ctx.scale(scale, scale);
 
-    // 1. 绘制白色背景
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // 2. 绘制顶部水印/标题
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillStyle = '#e5e7eb'; // 浅灰色
+    ctx.fillStyle = '#e5e7eb';
     ctx.textAlign = 'center';
-    ctx.fillText('有借有还 App 生成', width/2, 20);
+    ctx.fillText('有借有还 App 生成', width/2, 20); // 修改水印文案
 
-    // 3. 绘制正文
-    ctx.fillStyle = '#1f2937'; // 深灰色文字
+    ctx.fillStyle = '#1f2937';
     ctx.font = `${fontSize}px serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
@@ -212,21 +242,18 @@ export default function App() {
         y += lineHeight;
     });
 
-    // 4. 绘制签名（如果有）
     if (signatureData && currentShareItem.type === 'outgoing') {
         const img = new Image();
         img.onload = () => {
-            const sigWidth = 140; // 签名显示宽度
+            const sigWidth = 140;
             const sigHeight = (img.height / img.width) * sigWidth;
-            // 签名靠右对齐
             const sigX = width - padding - sigWidth;
             const sigY = y + 30;
             
             ctx.drawImage(img, sigX, sigY, sigWidth, sigHeight);
             
-            // 添加“手写签名”文字标注
             ctx.font = '12px sans-serif';
-            ctx.fillStyle = '#9ca3af'; // 灰色
+            ctx.fillStyle = '#9ca3af';
             ctx.textAlign = 'right';
             ctx.fillText('签署人手写签名：', sigX - 10, sigY + sigHeight/2);
             
@@ -264,8 +291,8 @@ export default function App() {
           {activeTab === 'list' && (
             <div className="p-4 space-y-4">
               <div className="flex bg-gray-200 p-1 rounded-lg">
-                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回 (讨债)</button>
-                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还 (欠款)</button>
+                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回</button>
+                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还</button>
               </div>
               <div className={`${listType === 'incoming' ? wxGreen : wxRed} text-white rounded-2xl p-6 shadow-lg transition-all`}>
                 <div className="text-xs opacity-80 mb-1">{listType === 'incoming' ? '待收回总金额' : '待偿还总金额'}</div>
@@ -286,9 +313,16 @@ export default function App() {
                     <div className="flex justify-between items-center pt-2 border-t border-gray-50">
                         <div className="text-[10px] text-gray-400 flex items-center gap-1"><Clock size={10}/> {item.dueDate}</div>
                         <div className="flex gap-2">
-                            <button onClick={() => {setEditingReminderItem({...item}); setShowReminderModal(true);}} className="p-1.5 text-gray-300 hover:text-purple-500"><Bell size={16}/></button>
+                            {/* 将之前的 Bell 按钮替换为日历按钮，点击直接下载 ICS */}
+                            <button 
+                                onClick={() => generateIcsFile(item)}
+                                className="p-1.5 text-gray-300 hover:text-blue-500" 
+                                title="添加到日历"
+                            >
+                                <CalendarPlus size={16}/>
+                            </button>
                             <button onClick={() => setDebts(debts.filter(d=>d.id!==item.id))} className="p-1.5 text-gray-300 hover:text-red-500"><Trash2 size={16}/></button>
-                            <button onClick={() => { setCurrentShareItem(item); setAiGeneratedMessage(''); setSignatureData(null); setCommitmentForm({myName: userProfile.name, idCard: userProfile.idCard, includePenalty: false, penalty: '承担相应的法律责任及所有催收费用'}); setShowShareModal(true); }} className={`${item.type === 'incoming' ? wxGreen : 'bg-red-500'} text-white text-xs px-4 py-1.5 rounded-full font-bold shadow-sm`}>{item.type === 'incoming' ? 'AI 讨债' : '签承诺书'}</button>
+                            <button onClick={() => { setCurrentShareItem(item); setAiGeneratedMessage(''); setSignatureData(null); setCommitmentForm({myName: userProfile.name, idCard: userProfile.idCard, includePenalty: false, penalty: '承担相应的法律责任及所有催收费用'}); setShowShareModal(true); }} className={`${item.type === 'incoming' ? wxGreen : 'bg-red-500'} text-white text-xs px-4 py-1.5 rounded-full font-bold shadow-sm`}>{item.type === 'incoming' ? 'AI 催收' : '签承诺书'}</button>
                         </div>
                     </div>
                   </div>
@@ -311,6 +345,14 @@ export default function App() {
                     <div className="border-b pb-1"><label className="text-[10px] text-gray-400 block ml-1">约定还款时间</label><div className="flex gap-2"><input type="date" className="flex-1 p-2 outline-none text-sm" value={newDebt.dueDate} onChange={e=>setNewDebt({...newDebt, dueDate: e.target.value})} /><input type="time" className="w-24 p-2 outline-none text-sm text-gray-500" value={newDebt.dueTime} onChange={e=>setNewDebt({...newDebt, dueTime: e.target.value})} /></div></div>
                     <div className="border-b pb-1"><label className="text-[10px] text-gray-400 block ml-1">原因备注</label><input type="text" placeholder="例如：聚餐垫付" className="w-full p-2 outline-none text-sm" value={newDebt.reason} onChange={e=>setNewDebt({...newDebt, reason: e.target.value})} /></div>
                 </div>
+                
+                <div className="space-y-3 pt-2">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                        <span className="text-xs text-gray-600 flex items-center gap-2"><CalendarPlus size={14} className="text-blue-500"/> 添加到手机日历</span>
+                        <input type="checkbox" checked={newDebt.addToCalendar} onChange={e=>setNewDebt({...newDebt, addToCalendar: e.target.checked})} className="w-4 h-4 accent-blue-500" />
+                    </div>
+                </div>
+
                 <button onClick={handleAddDebt} className={`w-full ${newDebt.type==='incoming'?wxGreen:'bg-red-500'} text-white py-4 rounded-2xl font-bold shadow-lg`}>保存账单</button>
               </div>
             </div>
@@ -354,23 +396,12 @@ export default function App() {
           <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-green-600 font-bold' : 'text-gray-400'}`}><Settings size={22} /><span className="text-[10px]">设置</span></button>
         </div>
 
-        {/* Reminder Modal */}
-        {showReminderModal && editingReminderItem && (
-            <div className="absolute inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                <div className="bg-white w-full max-w-sm rounded-3xl p-6 space-y-5 animate-fade-in-up">
-                    <div className="flex justify-between items-center border-b pb-2 font-bold text-gray-700"><span>提醒管理</span><button onClick={()=>setShowReminderModal(false)}><X/></button></div>
-                    <div className="flex justify-between items-center"><span className="text-sm font-medium">微信服务通知</span><input type="checkbox" checked={editingReminderItem.enableReminder} onChange={e=>setEditingReminderItem({...editingReminderItem, enableReminder: e.target.checked})} className="w-6 h-6 accent-purple-600" /></div>
-                    <button onClick={()=>{ setDebts(debts.map(d=>d.id===editingReminderItem.id?editingReminderItem:d)); setShowReminderModal(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold">保存设置</button>
-                </div>
-            </div>
-        )}
-
         {/* Share Modal */}
         {showShareModal && currentShareItem && (
           <div className="absolute inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl animate-fade-in-up flex flex-col relative">
                 <div className="p-4 bg-gray-50 border-b flex justify-between items-center sticky top-0 z-10">
-                    <span className="font-bold text-gray-700">{currentShareItem.type === 'incoming' ? 'AI 高情商讨债助手' : '借款承诺书预览'}</span>
+                    <span className="font-bold text-gray-700">{currentShareItem.type === 'incoming' ? '有借有还 AI 助手' : '借款承诺书预览'}</span>
                     <button onClick={() => setShowShareModal(false)} className="text-gray-400 text-2xl px-2">&times;</button>
                 </div>
                 <div className="p-5 space-y-4">
