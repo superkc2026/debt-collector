@@ -24,7 +24,9 @@ export default function App() {
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentShareItem, setCurrentShareItem] = useState(null);
-  // 移除 ReminderModal 相关状态
+  
+  // 移除 ReminderModal 相关状态 (showReminderModal 等) 已彻底删除，不再报错
+  
   const [aiOptions, setAiOptions] = useState({ audience: '朋友', style: '正常' });
   const [aiGeneratedMessage, setAiGeneratedMessage] = useState('');
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
@@ -293,8 +295,8 @@ END:VCALENDAR`;
           {activeTab === 'list' && (
             <div className="p-4 space-y-4">
               <div className="flex bg-gray-200 p-1 rounded-lg">
-                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回</button>
-                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还</button>
+                <button onClick={() => setListType('incoming')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'incoming' ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'}`}>待收回 (讨债)</button>
+                <button onClick={() => setListType('outgoing')} className={`flex-1 py-1.5 text-sm font-medium rounded-md ${listType === 'outgoing' ? 'bg-white text-red-500 shadow-sm' : 'text-gray-500'}`}>待偿还 (欠款)</button>
               </div>
               <div className={`${listType === 'incoming' ? wxGreen : wxRed} text-white rounded-2xl p-6 shadow-lg transition-all`}>
                 <div className="text-xs opacity-80 mb-1">{listType === 'incoming' ? '待收回总金额' : '待偿还总金额'}</div>
@@ -397,17 +399,6 @@ END:VCALENDAR`;
           <button onClick={() => setActiveTab('add')} className="flex items-center justify-center -mt-8"><div className={`${wxGreen} w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-[#f5f5f5]`}><Plus size={30}/></div></button>
           <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-green-600 font-bold' : 'text-gray-400'}`}><Settings size={22} /><span className="text-[10px]">设置</span></button>
         </div>
-
-        {/* Reminder Modal */}
-        {showReminderModal && editingReminderItem && (
-            <div className="absolute inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-                <div className="bg-white w-full max-w-sm rounded-3xl p-6 space-y-5 animate-fade-in-up">
-                    <div className="flex justify-between items-center border-b pb-2 font-bold text-gray-700"><span>提醒管理</span><button onClick={()=>setShowReminderModal(false)}><X/></button></div>
-                    <div className="flex justify-between items-center"><span className="text-sm font-medium">微信服务通知</span><input type="checkbox" checked={editingReminderItem.enableReminder} onChange={e=>setEditingReminderItem({...editingReminderItem, enableReminder: e.target.checked})} className="w-6 h-6 accent-purple-600" /></div>
-                    <button onClick={()=>{ setDebts(debts.map(d=>d.id===editingReminderItem.id?editingReminderItem:d)); setShowReminderModal(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold">保存设置</button>
-                </div>
-            </div>
-        )}
 
         {/* Share Modal */}
         {showShareModal && currentShareItem && (
