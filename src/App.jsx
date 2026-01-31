@@ -79,6 +79,7 @@ export default function App() {
 
   // --- 业务逻辑 ---
   // 生成 ICS 文件并下载（添加到手机日历）
+  // H5 无法直接操作原生日历，生成 .ics 文件是目前的行业标准解决方案
   const generateIcsFile = (item) => {
     const title = item.type === 'incoming' ? `有借有还：${item.name}应还款` : `有借有还：还给${item.name}`;
     // 简单的 ICS 时间格式化
@@ -105,12 +106,13 @@ END:VCALENDAR`;
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `calendar_event_${Date.now()}.ics`;
+    // 使用更有意义的文件名
+    link.download = `event-${item.name}-${item.dueDate}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    alert('📅 日历事件文件已生成，请打开文件以添加到手机日历。');
+    // 移除 Alert，让体验更流畅
   };
 
   const handleAddDebt = () => {
@@ -395,6 +397,17 @@ END:VCALENDAR`;
           <button onClick={() => setActiveTab('add')} className="flex items-center justify-center -mt-8"><div className={`${wxGreen} w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-[#f5f5f5]`}><Plus size={30}/></div></button>
           <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-green-600 font-bold' : 'text-gray-400'}`}><Settings size={22} /><span className="text-[10px]">设置</span></button>
         </div>
+
+        {/* Reminder Modal */}
+        {showReminderModal && editingReminderItem && (
+            <div className="absolute inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                <div className="bg-white w-full max-w-sm rounded-3xl p-6 space-y-5 animate-fade-in-up">
+                    <div className="flex justify-between items-center border-b pb-2 font-bold text-gray-700"><span>提醒管理</span><button onClick={()=>setShowReminderModal(false)}><X/></button></div>
+                    <div className="flex justify-between items-center"><span className="text-sm font-medium">微信服务通知</span><input type="checkbox" checked={editingReminderItem.enableReminder} onChange={e=>setEditingReminderItem({...editingReminderItem, enableReminder: e.target.checked})} className="w-6 h-6 accent-purple-600" /></div>
+                    <button onClick={()=>{ setDebts(debts.map(d=>d.id===editingReminderItem.id?editingReminderItem:d)); setShowReminderModal(false); }} className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold">保存设置</button>
+                </div>
+            </div>
+        )}
 
         {/* Share Modal */}
         {showShareModal && currentShareItem && (
