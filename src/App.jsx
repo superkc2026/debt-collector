@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
-// 为了防止复制粘贴遗漏，我们将图标引入拆分为多行
+// 1. 关键修复：确保引入 PieChart 和 Globe，防止设置页面白屏
 import { 
   Plus, Trash2, Clock, Copy, AlertCircle, User, Calendar, 
   ArrowUpRight, ArrowDownLeft, Edit3, CalendarPlus, PenTool, 
   Image as ImageIcon, Sparkles, RefreshCw, Bell, BellRing, 
   Users, Palette, Settings, Shield, Save, X, Zap, 
-  Globe, PieChart // 确保 Globe 和 PieChart 在这里
+  Globe, PieChart 
 } from 'lucide-react';
 
 export default function App() {
@@ -42,7 +42,7 @@ export default function App() {
   const wxBg = 'bg-[#f5f5f5]';
   const wxRed = 'bg-[#fa5151]';
 
-  // --- AI 文案生成 ---
+  // --- AI 文案生成 (保留催收功能，但移除了记账识别) ---
   const callDeepSeek = async (systemPrompt, userPrompt) => {
     try {
       const response = await fetch("/api/chat", {
@@ -143,8 +143,8 @@ export default function App() {
   };
 
   return (
-    // 使用 h-screen 和 hidden 确保全屏且无额外滚动条
-    <div className={`h-screen w-screen ${wxBg} flex justify-center overflow-hidden`}>
+    // 2. 关键修复：h-[100dvh] 确保全屏，wxBg 保持背景色，overflow-hidden 防止双重滚动条
+    <div className={`h-[100dvh] w-screen ${wxBg} flex justify-center overflow-hidden`}>
       <div className="w-full md:max-w-md bg-white h-full shadow-xl relative flex flex-col">
         {/* Header */}
         <div className="bg-[#ededed] px-4 py-3 flex items-center justify-between border-b border-gray-300 sticky top-0 z-20 shrink-0">
@@ -153,7 +153,6 @@ export default function App() {
           </div>
           <div className="flex gap-2 items-center">
              <div className="text-[10px] text-gray-400 bg-gray-200 px-2 py-1 rounded-full">AI Ready</div>
-             {/* 这里的 Globe 已经确保被导入 */}
              <Globe size={18} className="text-gray-400" />
           </div>
         </div>
@@ -199,6 +198,7 @@ export default function App() {
           {activeTab === 'add' && (
             <div className="p-4 space-y-6">
               <h2 className="text-xl font-bold">记一笔新账</h2>
+              {/* 3. 已移除 AI 智能记账，仅保留手动表单 */}
               <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-5">
                 <div className="grid grid-cols-2 gap-3">
                     <button onClick={()=>setNewDebt({...newDebt, type:'incoming'})} className={`py-3 rounded-xl border-2 font-bold text-sm ${newDebt.type==='incoming'?'border-green-500 bg-green-50 text-green-700':'border-gray-100 text-gray-400'}`}>借给别人</button>
@@ -219,7 +219,7 @@ export default function App() {
             <div className="p-4 space-y-5">
               <h2 className="text-xl font-bold px-1">设置与资产</h2>
               <div className="bg-gray-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
-                {/* 这里的 PieChart 已经确保被导入 */}
+                {/* 4. PieChart 必须引入 */}
                 <PieChart className="absolute -right-4 -top-4 opacity-10 w-24 h-24" />
                 <div className="text-[10px] opacity-50 mb-1">当前净资产 (借出-欠款)</div>
                 <div className="text-2xl font-bold mb-4">¥ {(debts.filter(d=>d.type==='incoming').reduce((s,i)=>s+Number(i.amount),0) - debts.filter(d=>d.type==='outgoing').reduce((s,i)=>s+Number(i.amount),0)).toLocaleString()}</div>
