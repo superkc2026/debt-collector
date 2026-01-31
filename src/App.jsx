@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Trash2, Clock, Copy, AlertCircle, User, Calendar, ArrowUpRight, ArrowDownLeft, Edit3, CalendarPlus, PenTool, Image as ImageIcon, Sparkles, RefreshCw, Bell, BellRing, Users, Palette, Settings, Shield, Save, X, Zap } from 'lucide-react';
+import { Plus, Trash2, Clock, Copy, AlertCircle, User, Calendar, ArrowUpRight, ArrowDownLeft, Edit3, CalendarPlus, PenTool, Image as ImageIcon, Sparkles, RefreshCw, Bell, BellRing, Users, Palette, Settings, Shield, Save, X, Zap, Globe, PieChart } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('list');
@@ -15,7 +15,6 @@ export default function App() {
     type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', enableReminder: false, reminderType: '当天', addToCalendar: false
   });
 
-  // 弹窗与交互状态
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentShareItem, setCurrentShareItem] = useState(null);
   const [showReminderModal, setShowReminderModal] = useState(false);
@@ -39,7 +38,6 @@ export default function App() {
   // --- 安全的 DeepSeek 调用 (通过后端转发) ---
   const callDeepSeek = async (systemPrompt, userPrompt) => {
     try {
-      // 请求我们自己的后端接口 /api/chat，不再需要前端传 Key
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,7 +55,7 @@ export default function App() {
 
       return data.choices?.[0]?.message?.content || "";
     } catch (e) {
-      alert(`AI 暂时不可用，请稍后再试。错误: ${e.message}`);
+      alert(`AI 暂时不可用。错误: ${e.message}`);
       return null;
     }
   };
@@ -138,14 +136,17 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen ${wxBg} flex flex-col items-center`}>
-      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative flex flex-col overflow-hidden">
+    <div className={`h-[100dvh] ${wxBg} flex justify-center`}>
+      <div className="w-full md:max-w-md bg-white h-full shadow-xl relative flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-[#ededed] px-4 py-3 flex items-center justify-between border-b border-gray-300 sticky top-0 z-20">
+        <div className="bg-[#ededed] px-4 py-3 flex items-center justify-between border-b border-gray-300 sticky top-0 z-20 shrink-0">
           <div className="font-semibold text-lg flex items-center gap-2">
             债务小本本 <Zap size={14} className="text-yellow-500" fill="currentColor"/>
           </div>
-          <div className="text-[10px] text-gray-400 bg-gray-200 px-2 py-1 rounded-full">已接入 DeepSeek AI</div>
+          <div className="flex gap-2 items-center">
+             <div className="text-[10px] text-gray-400 bg-gray-200 px-2 py-1 rounded-full">AI Ready</div>
+             <Globe size={18} className="text-gray-400" />
+          </div>
         </div>
 
         {/* Content */}
@@ -212,19 +213,32 @@ export default function App() {
                 <PieChart className="absolute -right-4 -top-4 opacity-10 w-24 h-24" />
                 <div className="text-[10px] opacity-50 mb-1">当前净资产 (借出-欠款)</div>
                 <div className="text-2xl font-bold mb-4">¥ {(debts.filter(d=>d.type==='incoming').reduce((s,i)=>s+Number(i.amount),0) - debts.filter(d=>d.type==='outgoing').reduce((s,i)=>s+Number(i.amount),0)).toLocaleString()}</div>
+                <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                    <div><div className="text-[10px] opacity-50 text-green-400">总应收</div><div className="font-bold">¥ {debts.filter(d=>d.type==='incoming').reduce((s,i)=>s+Number(i.amount),0).toLocaleString()}</div></div>
+                    <div><div className="text-[10px] opacity-50 text-red-400">总应付</div><div className="font-bold">¥ {debts.filter(d=>d.type==='outgoing').reduce((s,i)=>s+Number(i.amount),0).toLocaleString()}</div></div>
+                </div>
               </div>
+
               <div className="bg-white p-5 rounded-2xl border shadow-sm space-y-4">
                 <div className="flex items-center gap-2 font-bold text-gray-700 border-b pb-2"><User size={18} className="text-blue-500"/> 身份信息预设</div>
                 <input type="text" placeholder="我的真实姓名" className="w-full p-2 border rounded-lg text-sm" value={userProfile.name} onChange={e=>setUserProfile({...userProfile, name: e.target.value})} />
                 <input type="text" placeholder="我的身份证号" className="w-full p-2 border rounded-lg text-sm" value={userProfile.idCard} onChange={e=>setUserProfile({...userProfile, idCard: e.target.value})} />
               </div>
-              <div className="text-center text-[10px] text-gray-400 mt-4">DeepSeek AI 服务已就绪 · 由凡科技提供支持</div>
+
+              <div className="space-y-2">
+                <button className="w-full flex justify-between p-4 bg-white rounded-xl border text-sm text-gray-600">
+                    <span className="flex items-center gap-2"><Save size={16}/> 导出账单备份 (JSON)</span><ChevronRight size={16}/>
+                </button>
+                <button onClick={()=>{ if(window.confirm('确定要清空所有数据吗？')) setDebts([]); }} className="w-full flex justify-between p-4 bg-red-50 rounded-xl border border-red-100 text-sm text-red-600">
+                    <span className="flex items-center gap-2"><Trash2 size={16}/> 清空本地所有账单</span><ChevronRight size={16}/>
+                </button>
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="bg-white border-t flex justify-around py-3 absolute bottom-0 w-full z-20">
+        <div className="bg-white border-t flex justify-around py-3 absolute bottom-0 w-full z-20 shrink-0">
           <button onClick={() => setActiveTab('list')} className={`flex flex-col items-center gap-1 ${activeTab === 'list' ? 'text-green-600 font-bold' : 'text-gray-400'}`}><Clock size={22} /><span className="text-[10px]">账本</span></button>
           <button onClick={() => setActiveTab('add')} className="flex items-center justify-center -mt-8"><div className={`${wxGreen} w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-[#f5f5f5]`}><Plus size={30}/></div></button>
           <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 ${activeTab === 'profile' ? 'text-green-600 font-bold' : 'text-gray-400'}`}><Settings size={22} /><span className="text-[10px]">设置</span></button>
