@@ -157,10 +157,26 @@ END:VCALENDAR`;
     setActiveTab('list');
   };
 
-  // 3. 备份数据功能
+  // 3. 备份数据功能 (更新：增加小白用户友好的注释和说明)
   const backupData = () => {
+    const exportData = {
+      "___使用说明___": "1. 您可以直接编辑此文件来批量添加账单。 2. 请勿修改左侧英文键名（如 name），只修改右侧的值。 3. 修改完成后，在App点击'恢复账单数据'上传。",
+      "___字段填写指南___": {
+        "type": "填写 'incoming' (别人欠我) 或 'outgoing' (我欠别人)",
+        "name": "对方姓名",
+        "amount": "金额 (纯数字，不要加符号)",
+        "dueDate": "日期 (格式必须为 YYYY-MM-DD)",
+        "dueTime": "时间 (格式为 HH:MM)",
+        "reason": "备注原因",
+        "status": "填写 'pending' (进行中) 或 'overdue' (已逾期)",
+        "addToCalendar": "true (开启日历) 或 false (关闭)"
+      },
+      userProfile,
+      debts
+    };
+
     // 使用 JSON.stringify 的第三个参数 (2) 来添加缩进和换行，使 JSON 易读易编辑
-    const dataStr = JSON.stringify({ debts, userProfile }, null, 2);
+    const dataStr = JSON.stringify(exportData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -188,10 +204,10 @@ END:VCALENDAR`;
             alert('数据恢复成功！');
           }
         } else {
-          alert('文件格式错误，无法恢复。');
+          alert('文件格式错误，无法恢复。请确认上传的是正确的备份文件。');
         }
       } catch (error) {
-        alert('解析备份文件失败。');
+        alert('解析备份文件失败，JSON 格式可能有误。');
       }
     };
     reader.readAsText(file);
@@ -418,14 +434,6 @@ END:VCALENDAR`;
                     <div className="border-b pb-1"><label className="text-[10px] text-gray-400 block ml-1">约定还款时间</label><div className="flex gap-2"><input type="date" className="flex-1 p-2 outline-none text-sm" value={newDebt.dueDate} onChange={e=>setNewDebt({...newDebt, dueDate: e.target.value})} /><input type="time" className="w-24 p-2 outline-none text-sm text-gray-500" value={newDebt.dueTime} onChange={e=>setNewDebt({...newDebt, dueTime: e.target.value})} /></div></div>
                     <div className="border-b pb-1"><label className="text-[10px] text-gray-400 block ml-1">原因备注</label><input type="text" placeholder="例如：聚餐垫付" className="w-full p-2 outline-none text-sm" value={newDebt.reason} onChange={e=>setNewDebt({...newDebt, reason: e.target.value})} /></div>
                 </div>
-                
-                <div className="space-y-3 pt-2">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                        <span className="text-xs text-gray-600 flex items-center gap-2"><CalendarPlus size={14} className="text-blue-500"/> 添加到手机日历</span>
-                        <input type="checkbox" checked={newDebt.addToCalendar} onChange={e=>setNewDebt({...newDebt, addToCalendar: e.target.checked})} className="w-4 h-4 accent-blue-500" />
-                    </div>
-                </div>
-
                 <button onClick={handleAddDebt} className={`w-full ${newDebt.type==='incoming'?wxGreen:'bg-red-500'} text-white py-4 rounded-2xl font-bold shadow-lg`}>保存账单</button>
               </div>
             </div>
