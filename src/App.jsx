@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-// 移除 Bell, BellRing，因为不再需要应用内提醒
+// 1. 引入 Upload 图标
 import { 
   Plus, Trash2, Clock, Copy, User, Edit3, CalendarPlus, PenTool, 
   Image as ImageIcon, Sparkles, RefreshCw, Users, Palette, Settings, Shield, Save, X, Zap, 
-  Globe, PieChart, ChevronRight, CalendarCheck
+  Globe, PieChart, ChevronRight, CalendarCheck, Upload
 } from 'lucide-react';
 
 export default function App() {
@@ -36,6 +36,8 @@ export default function App() {
   });
   
   const signatureCanvasRef = useRef(null);
+  // 2. 添加文件输入的引用
+  const fileInputRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [signatureData, setSignatureData] = useState(null);
 
@@ -81,10 +83,8 @@ export default function App() {
 
   // --- 业务逻辑 ---
   // 生成 ICS 文件并下载（添加到手机日历）
-  // H5 无法直接操作原生日历，生成 .ics 文件是目前的行业标准解决方案
   const generateIcsFile = (item) => {
     const title = item.type === 'incoming' ? `有借有还：${item.name}应还款` : `有借有还：还给${item.name}`;
-    // 简单的 ICS 时间格式化
     const dateStr = item.dueDate.replace(/-/g, '');
     const timeStr = item.dueTime.replace(/:/g, '');
     const start = `${dateStr}T${timeStr}00`;
@@ -108,13 +108,10 @@ END:VCALENDAR`;
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    // 使用更有意义的文件名
     link.download = `event-${item.name}-${item.dueDate}.ics`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    // 移除 Alert，让体验更流畅
   };
 
   const handleAddDebt = () => {
@@ -128,6 +125,47 @@ END:VCALENDAR`;
     
     setNewDebt({ type: 'incoming', name: '', amount: '', dueDate: '', dueTime: '12:00', reason: '', addToCalendar: false });
     setActiveTab('list');
+  };
+
+  // 3. 备份数据功能
+  const backupData = () => {
+    const dataStr = JSON.stringify({ debts, userProfile });
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `有借有还_备份_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 4. 恢复数据功能
+  const handleRestoreData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        // 简单的数据校验
+        if (data.debts && Array.isArray(data.debts)) {
+          if (window.confirm(`检测到备份文件，包含 ${data.debts.length} 条账单。\n确认覆盖当前数据吗？`)) {
+            setDebts(data.debts);
+            if (data.userProfile) setUserProfile(data.userProfile);
+            alert('数据恢复成功！');
+          }
+        } else {
+          alert('文件格式错误，无法恢复。');
+        }
+      } catch (error) {
+        alert('解析备份文件失败。');
+      }
+    };
+    reader.readAsText(file);
+    // 清空 input 值，允许重复选择同一文件
+    event.target.value = '';
   };
 
   const getStatusBadge = (date) => {
@@ -381,10 +419,23 @@ END:VCALENDAR`;
                 <input type="text" placeholder="我的身份证号" className="w-full p-2 border rounded-lg text-sm" value={userProfile.idCard} onChange={e=>setUserProfile({...userProfile, idCard: e.target.value})} />
               </div>
 
+              {/* 5. 绑定备份和恢复按钮 */}
               <div className="space-y-2">
-                <button className="w-full flex justify-between p-4 bg-white rounded-xl border text-sm text-gray-600">
+                <button onClick={backupData} className="w-full flex justify-between p-4 bg-white rounded-xl border text-sm text-gray-600">
                     <span className="flex items-center gap-2"><Save size={16}/> 导出账单备份 (JSON)</span><ChevronRight size={16}/>
                 </button>
+                <button onClick={() => fileInputRef.current.click()} className="w-full flex justify-between p-4 bg-white rounded-xl border text-sm text-gray-600">
+                    <span className="flex items-center gap-2"><Upload size={16}/> 恢复账单数据</span><ChevronRight size={16}/>
+                </button>
+                {/* 隐藏的文件输入框 */}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  accept=".json" 
+                  onChange={handleRestoreData} 
+                />
+                
                 <button onClick={()=>{ if(window.confirm('确定要清空所有数据吗？')) setDebts([]); }} className="w-full flex justify-between p-4 bg-red-50 rounded-xl border border-red-100 text-sm text-red-600">
                     <span className="flex items-center gap-2"><Trash2 size={16}/> 清空本地所有账单</span><ChevronRight size={16}/>
                 </button>
